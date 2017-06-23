@@ -26,10 +26,10 @@ public abstract class Setting: Option {
 
 	public virtual void SetStateText() {
 		if (On) {
-			StateDisplay.text = "ON";
+			StateDisplay.text = "On";
 		}
 		else {
-			StateDisplay.text = "OFF";
+			StateDisplay.text = "Off";
 		}
 	}
 

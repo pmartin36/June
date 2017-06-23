@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 1a53e444b1bfdbd4f95e98e2358ef0cf
+timeCreated: 1498016632
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Arcapulse
+  fontNames:
+  - Arcapulse
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

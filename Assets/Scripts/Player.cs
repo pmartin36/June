@@ -152,7 +152,8 @@ public class Player : MonoBehaviour {
 	}
 
 	public void OnDestroy() {
-		Destroy(directional.gameObject);
+		if(directional != null)
+			Destroy(directional.gameObject);
 	}
 
 	public void OnTriggerEnter2D(Collider2D other) {

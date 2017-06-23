@@ -19,6 +19,7 @@ public static class Serializer<T> where T : class
 
 	public static T Deserialize(string filename) {
 		string file = Path.Combine(Application.persistentDataPath, filename);
+		Debug.Log("Deserializing File: " + file);
 		if(!File.Exists(file)) {
 			return default(T);
 		}

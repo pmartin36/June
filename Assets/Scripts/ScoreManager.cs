@@ -13,6 +13,8 @@ public class ScoreManager : MonoBehaviour {
 	private TMP_Text highScoreText;
 	private TMP_Text highScoreValueText;
 
+	GameObject panel;
+
 	public int CurrentScore { get; private set; }
 	public int HighScore { get; private set; }
 
@@ -20,11 +22,18 @@ public class ScoreManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Awake () {
-		texts = GetComponentsInChildren<TMP_Text>().OrderByDescending( g => g.transform.position.y ).ThenBy( g=> g.transform.position.x ).ToArray();
+		texts = GetComponentsInChildren<TMP_Text>().OrderBy( g => g.transform.position.x ).ToArray();
 		scoreText = texts[0];
 		scoreValueText = texts[1];
-		highScoreText = texts[2];
-		highScoreValueText = texts[3];
+		
+		highScoreValueText = texts[2];
+		highScoreText = texts[3];
+
+		foreach(Transform child in transform){
+			if(child.tag == "ScorePanel"){
+				panel = child.gameObject;
+			}
+		}
 	}
 
 	void Start() {
@@ -33,15 +42,17 @@ public class ScoreManager : MonoBehaviour {
 	}
 
 	public void Show() {
-		foreach(TMP_Text t in texts) {
-			t.color = Color.white;
-		}
+		panel.SetActive(true);
+		//foreach(TMP_Text t in texts) {
+		//	t.color = Color.white;
+		//}
 	}
 
 	public void Hide() {
-		foreach (TMP_Text t in texts) {
-			t.color = Color.clear;
-		}
+		panel.SetActive(false);
+		//foreach (TMP_Text t in texts) {
+		//	t.color = Color.clear;
+		//}
 	}
 
 	public void ClearScore() {

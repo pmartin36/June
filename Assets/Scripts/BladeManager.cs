@@ -141,7 +141,8 @@ public class BladeManager : MonoBehaviour {
 
 			foreach (Direction d in AllowedSpawnDirections) {
 				//determine which blade positions are spawning
-				float i = d == Direction.Right || d == Direction.Left ? 1f : 0.5f;
+				bool leftright = d == Direction.Right || d == Direction.Left;
+				float i = leftright ? 1f : 0.5f;
 				for(; i < 9; i++) {
 					BladeInfo bi = new BladeInfo() { Position = i/10f, Size = 0f, BladeDirection = d, InitTime = initTime };
 					while((UnityEngine.Random.value <= SpawnSurface)
@@ -156,7 +157,7 @@ public class BladeManager : MonoBehaviour {
 						int colorOptions = BlackBladeEnabled ? 6 : 5;
 						bi.BladeColor = (GameColors)UnityEngine.Random.Range(1, colorOptions);
 
-						bi.OrderInLayer = currentOrderInLayer;
+						bi.OrderInLayer = leftright ? currentOrderInLayer : currentOrderInLayer+1;
 						
 						bi.AudioClip = clip;
 
@@ -184,7 +185,7 @@ public class BladeManager : MonoBehaviour {
 
 			//decrement order in layer so that the newest blades can always stay on top
 			//acceptable range is -100 to 100 so when we hit -100, we add 150 to reset to +50
-			currentOrderInLayer++;
+			currentOrderInLayer+=2;
 			if (currentOrderInLayer > 100) {
 				foreach (GameObject o in GameObject.FindGameObjectsWithTag("Blade")) {
 					o.GetComponent<SpriteRenderer>().sortingOrder -= 150;

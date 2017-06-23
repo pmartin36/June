@@ -24,6 +24,9 @@ public class GameManager : Singleton<GameManager> {
 	public AudioSource InGameMusic;
 	public AudioSource MenuMusic;
 
+	Coroutine crossfadeCoroutine;
+	Coroutine loadStartMenuCoroutine;
+
 	public void Awake() {
 		settings = Settings.Load();		
 	}
@@ -46,7 +49,7 @@ public class GameManager : Singleton<GameManager> {
 
 		//make sure the in game music is not playing because only the menu music should be playing
 		InGameMusic.volume = 0f;
-		MenuMusic.volume = 0.5f;
+		MenuMusic.volume = 0f;
 	}
 
 	//leaving the menu to enter gameplay
@@ -55,8 +58,15 @@ public class GameManager : Singleton<GameManager> {
 
 		//restart music
 		if ((MenuTypes)menuManager.Index == MenuTypes.Start) {
-			StopCoroutine("Crossfade");
-			StartCoroutine(Crossfade(InGameMusic, MenuMusic, -1f, 0.5f, 1f, 0f));
+			if(crossfadeCoroutine != null) {
+				StopCoroutine(crossfadeCoroutine);
+			}
+			//stop start menu load
+			if (loadStartMenuCoroutine != null) {
+				StopCoroutine(loadStartMenuCoroutine);
+			}
+			float start = MenuMusic.volume > 0.4f ? -1f : 0f;
+			crossfadeCoroutine = StartCoroutine(Crossfade(InGameMusic, MenuMusic, start, MenuMusic.volume, 1f, 0f));
 		}
 		else if((MenuTypes)menuManager.Index == MenuTypes.Score) {
 			InGameMusic.volume = 1f;
@@ -140,22 +150,23 @@ public class GameManager : Singleton<GameManager> {
 	/// <param name="fromGameplay">Are we coming to the menu from playing the game or is this the first load of the start menu</param>
 	public void ToMainMenu(bool fromGameplay = false) {
 		ExitingGameplay();
-
-		if(fromGameplay) {
-			StopCoroutine("Crossfade");
-			StartCoroutine(Crossfade(MenuMusic, InGameMusic, 0f, -10f, 0.5f, 0f));
-		}
-
 		menuManager.EnterMenu(MenuTypes.Start);
+
+		if (crossfadeCoroutine != null) {
+			StopCoroutine(crossfadeCoroutine);
+		}
+		loadStartMenuCoroutine = StartCoroutine("LoadStartMenu");
 	}
 
 	/// <summary>
 	/// Player died
 	/// </summary>
 	public void GameOver() {		
-		ExitingGameplay();	
+		ExitingGameplay();
 
-		StopCoroutine("Crossfade");
+		if (crossfadeCoroutine != null) {
+			StopCoroutine(crossfadeCoroutine);
+		}
 		MenuMusic.Stop();
 		InGameMusic.volume = 0.5f;
 
@@ -176,16 +187,41 @@ public class GameManager : Singleton<GameManager> {
 		}
 	}
 
+	IEnumerator LoadStartMenu(){
+		MenuMusic.volume = 0;
+		InGameMusic.volume = 0;
+
+		float journeyTime = 0.5f;
+
+		//blade 3 blade sound + animation
+		for(int i = 0; i < 3 ; i++){
+			float startTime = Time.time;
+			while(Time.time - startTime < journeyTime + Time.deltaTime){
+				float jtime = (Time.time - startTime) / journeyTime;
+
+				//blade animation
+
+				yield return new WaitForEndOfFrame();
+			}
+		}
+
+		if(MenuOpen)
+			crossfadeCoroutine = StartCoroutine(Crossfade(MenuMusic, InGameMusic, 0f, 0f, 0.5f, 0f));
+	}
+
 	//crossfade 2 audio sources
 	//used to change between menu music and in-game music
 	public IEnumerator Crossfade(AudioSource coming, AudioSource going, float comingStartVolume = -10f, float goingStartVolume = -10f, float comingEndVolume = -10f, float goingEndVolume = -10f) {
 		float startTime = Time.time;
 
-		comingStartVolume = comingStartVolume < -9f ? coming.volume : comingStartVolume;
-		goingStartVolume = goingStartVolume < -9f ? going.volume : goingStartVolume;
+		float comingvolume = coming != null ? coming.volume : 0f;
+		float goingvolume = going != null ? going.volume : 0f;
 
-		comingEndVolume = comingEndVolume < -9f ? going.volume : comingEndVolume;
-		goingEndVolume = goingEndVolume < -9f ? coming.volume : goingEndVolume;
+		comingStartVolume = comingStartVolume < -9f ? comingvolume : comingStartVolume;
+		goingStartVolume = goingStartVolume < -9f ? goingvolume : goingStartVolume;
+
+		comingEndVolume = comingEndVolume < -9f ? goingvolume : comingEndVolume;
+		goingEndVolume = goingEndVolume < -9f ? comingvolume : goingEndVolume;
 
 		coming.Play();
 
@@ -193,8 +229,12 @@ public class GameManager : Singleton<GameManager> {
 
 		while(Time.time - startTime <= fadeTime) {
 			float ttime = (Time.time - startTime) / fadeTime;
-			coming.volume = Mathf.Lerp(comingStartVolume, comingEndVolume, ttime);
-			going.volume = Mathf.Lerp(goingStartVolume, goingEndVolume, ttime);
+
+			if(coming != null)
+				coming.volume = Mathf.Lerp(comingStartVolume, comingEndVolume, ttime);
+
+			if(going != null)
+				going.volume = Mathf.Lerp(goingStartVolume, goingEndVolume, ttime);
 
 			yield return new WaitForEndOfFrame();
 		}
