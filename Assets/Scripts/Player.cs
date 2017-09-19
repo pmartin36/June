@@ -21,6 +21,7 @@ public class Player : MonoBehaviour {
 	private BoxCollider2D box;
 
 	public bool Impaled { get; set; }
+	public GameObject playerTop;
 
 	public GameObject directionalPrefab;
 	private Directional directional;
@@ -37,13 +38,14 @@ public class Player : MonoBehaviour {
 		bounds = new Bounds(Camera.main.transform.position, new Vector3(w*2 - pokeDistanceX, osize*2 - pokeDistanceY));
 
 		spriteRenderers = GetComponentsInChildren<SpriteRenderer>().ToList();
+		spriteRenderers[0].material.SetFloat("_AlphaModifier", 1);
 
 		PlayerColor = GameColors.white;
 		fillColor = Color.white;
 
 		box = GetComponent<BoxCollider2D>();
 
-		directional = Instantiate(directionalPrefab, Vector3.zero, Quaternion.identity).GetComponent<Directional>();
+		directional = Instantiate(directionalPrefab, new Vector3(-0.0825f, 0.1725f, 0), Quaternion.identity).GetComponent<Directional>();
 		directional.PlayerTransform = this.transform;
 	}
 	
@@ -53,20 +55,22 @@ public class Player : MonoBehaviour {
 			transform.position += new Vector3(horizontal * moveSpeed, vertical * moveSpeed, 0);
 		}
 
+		Vector2 factor3D = new Vector2(0.1f, 0.1f);
+
 		//ensure player can't move out of bounds
 		Vector2 size = box.bounds.extents;
-		if (transform.position.x + size.x > bounds.max.x) {
-			transform.position = new Vector3(bounds.max.x - size.x, transform.position.y, 0);
+		if (transform.position.x + size.x + factor3D.x > bounds.max.x) {
+			transform.position = new Vector3(bounds.max.x - size.x - factor3D.x, transform.position.y, 0);
 		}
-		else if (transform.position.x - size.x < bounds.min.x) {
-			transform.position = new Vector3(bounds.min.x + size.x, transform.position.y, 0);
+		else if (transform.position.x - size.x + factor3D.x < bounds.min.x) {
+			transform.position = new Vector3(bounds.min.x + size.x - factor3D.x, transform.position.y, 0);
 		}
 
-		if (transform.position.y + size.y > bounds.max.y) {
-			transform.position = new Vector3(transform.position.x, bounds.max.y - size.y, 0);
+		if (transform.position.y + size.y - factor3D.y > bounds.max.y) {
+			transform.position = new Vector3(transform.position.x, bounds.max.y - size.y + factor3D.y, 0);
 		}
-		else if (transform.position.y - size.y < bounds.min.y) {
-			transform.position = new Vector3(transform.position.x, bounds.min.y + size.y, 0);
+		else if (transform.position.y - size.y - factor3D.y < bounds.min.y) {
+			transform.position = new Vector3(transform.position.x, bounds.min.y + size.y + factor3D.y, 0);
 		}
 	}
 
@@ -114,6 +118,7 @@ public class Player : MonoBehaviour {
 
 		PlayerColor = c;
 		fillColor = GetColorFromGameColor(PlayerColor);
+		GameManager.Instance.background.SetColor(c);
 		foreach(SpriteRenderer s in spriteRenderers) {
 			s.color = fillColor;
 		}
@@ -159,12 +164,19 @@ public class Player : MonoBehaviour {
 	public void OnTriggerEnter2D(Collider2D other) {
 		if(other.tag == "Blade") {
 			Blade b = other.GetComponent<Blade>();
-			if (b.BladeColor != this.PlayerColor) {
-				if(b.HasLaunched && !b.HasStopped) {
+			if (b.HasLaunched && (!b.HasStopped || b.JustCollided)) {
+				if(b.BladeColor != this.PlayerColor) {
 					//ded
 					if(!Impaled) {
 						Impaled = true;
 						this.transform.parent = other.transform;
+
+						//move player to back so that the blade renders in front of it
+						spriteRenderers[0].material.SetFloat("_AlphaModifier", 0);
+						spriteRenderers[0].sortingLayerName = "PlayerBack";
+
+						//add layer on top of player so that it 
+						Instantiate(playerTop, this.transform).GetComponent<SpriteRenderer>().color = GetColorFromGameColor(PlayerColor);
 
 						//stop all player movement
 						this.horizontal = 0f;
@@ -206,6 +218,11 @@ public class Player : MonoBehaviour {
 							}
 						}
 					}
+				}
+				else {
+					//player walked through the blade and matched color, get reward of 2 points -- TODO: fix potential race condition?
+					GameManager.Instance.scoreManager.IncrementScore(2);
+					b.PlayerDodged();
 				}
 			}
 		}

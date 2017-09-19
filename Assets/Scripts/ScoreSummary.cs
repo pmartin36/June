@@ -11,7 +11,7 @@ public class ScoreSummary : MonoBehaviour {
 	private TMP_Text playerScoreText;
 
 	private RectTransform scoreDetail;
-	private Light light;
+	private Light textLight;
 
 	void Awake() {
 		TMP_Text[] texts = GetComponentsInChildren<TMP_Text>().Where( t => t.tag == "OptionState").OrderByDescending( t => t.transform.position.y).ToArray();
@@ -23,7 +23,7 @@ public class ScoreSummary : MonoBehaviour {
 			scoreDetail = highScoreText.transform.parent.parent.GetComponent<RectTransform>();
 		}
 
-		light = GetComponentInChildren<Light>();
+		textLight = GetComponentInChildren<Light>();
 	}
 
 	void OnEnable() {
@@ -58,7 +58,7 @@ public class ScoreSummary : MonoBehaviour {
 		};
 
 		int lastIndex = UnityEngine.Random.Range(0, colorchoices.Count - 1);
-		light.color = colorchoices[lastIndex];
+		textLight.color = colorchoices[lastIndex];
 		float journeyTime = 2f;
 
 		while(true){
@@ -69,13 +69,13 @@ public class ScoreSummary : MonoBehaviour {
 				index = UnityEngine.Random.Range(0, colorchoices.Count - 1);
 			} while( index == lastIndex );
 
-			Color startColor = light.color;
+			Color startColor = textLight.color;
 			Color endColor = colorchoices[index];
 			lastIndex = index;
 
 			while (Time.time - startTime < journeyTime + Time.deltaTime){
 				float jtime = (Time.time - startTime) / journeyTime;
-				light.color = Color.Lerp(startColor, endColor, jtime);
+				textLight.color = Color.Lerp(startColor, endColor, jtime);
 				yield return new WaitForEndOfFrame();
 			}	
 		}

@@ -6,8 +6,12 @@ using System.Linq;
 
 public class SettingFullscreen : Setting {
 
+	int resolutionX, resolutionY;
+
 	public override void Awake() {
 		base.Awake();
+		resolutionX = 1600;
+		resolutionY = 900;
 	}
 
 	public void OnEnable() {
@@ -29,10 +33,12 @@ public class SettingFullscreen : Setting {
 		GameManager.Instance.settings.Save();
 
 		if(On) {
+			resolutionX = Screen.width;
+			resolutionY = Screen.height;
 			Screen.SetResolution(Screen.width, Screen.height, true);
 		}
 		else {
-			Screen.SetResolution(1280, 720, false);
+			Screen.SetResolution(resolutionX, resolutionY, false);
 		}
 	}
 }

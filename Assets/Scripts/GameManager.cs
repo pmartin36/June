@@ -24,6 +24,8 @@ public class GameManager : Singleton<GameManager> {
 	public AudioSource InGameMusic;
 	public AudioSource MenuMusic;
 
+	public Background background;
+
 	Coroutine crossfadeCoroutine;
 	Coroutine loadStartMenuCoroutine;
 
@@ -39,6 +41,8 @@ public class GameManager : Singleton<GameManager> {
 		InGameMusic = sources.First(s => s.clip.name != "Menu");
 		MenuMusic = sources.First(s => s.clip.name == "Menu");
 
+		background = GameObject.FindGameObjectWithTag("Background").GetComponent<Background>();
+
 		if (!settings.Music) {
 			InGameMusic.mute = true;
 			MenuMusic.mute = true;
@@ -50,6 +54,9 @@ public class GameManager : Singleton<GameManager> {
 		//make sure the in game music is not playing because only the menu music should be playing
 		InGameMusic.volume = 0f;
 		MenuMusic.volume = 0f;
+
+		//hide the cursor
+		Cursor.visible = false;
 	}
 
 	//leaving the menu to enter gameplay
@@ -66,10 +73,10 @@ public class GameManager : Singleton<GameManager> {
 				StopCoroutine(loadStartMenuCoroutine);
 			}
 			float start = MenuMusic.volume > 0.4f ? -1f : 0f;
-			crossfadeCoroutine = StartCoroutine(Crossfade(InGameMusic, MenuMusic, start, MenuMusic.volume, 1f, 0f));
+			crossfadeCoroutine = StartCoroutine(Crossfade(InGameMusic, MenuMusic, start, MenuMusic.volume, 0.6f, 0f));
 		}
 		else if((MenuTypes)menuManager.Index == MenuTypes.Score) {
-			InGameMusic.volume = 1f;
+			InGameMusic.volume = 0.6f;
 		}
 
 		//leave whatever menu we are currently in
@@ -168,7 +175,7 @@ public class GameManager : Singleton<GameManager> {
 			StopCoroutine(crossfadeCoroutine);
 		}
 		MenuMusic.Stop();
-		InGameMusic.volume = 0.5f;
+		InGameMusic.volume = 0.3f;
 
 		menuManager.EnterMenu(MenuTypes.Score);
 	}
@@ -191,19 +198,7 @@ public class GameManager : Singleton<GameManager> {
 		MenuMusic.volume = 0;
 		InGameMusic.volume = 0;
 
-		float journeyTime = 0.5f;
-
-		//blade 3 blade sound + animation
-		for(int i = 0; i < 3 ; i++){
-			float startTime = Time.time;
-			while(Time.time - startTime < journeyTime + Time.deltaTime){
-				float jtime = (Time.time - startTime) / journeyTime;
-
-				//blade animation
-
-				yield return new WaitForEndOfFrame();
-			}
-		}
+		yield return StartCoroutine((menuManager.ActiveMenu as MainMenu).ShowTitle());
 
 		if(MenuOpen)
 			crossfadeCoroutine = StartCoroutine(Crossfade(MenuMusic, InGameMusic, 0f, 0f, 0.5f, 0f));

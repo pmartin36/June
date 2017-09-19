@@ -33,6 +33,9 @@ public class BladeManager : MonoBehaviour {
 
 	private int currentOrderInLayer;
 
+	public Sprite HorizontalBladeSprite;
+	public Sprite VerticalBladeSprite;
+
 	//there are numerous blade slide clips and we choose one
 	public AudioClip[] bladeSlideAudioClips;
 
@@ -56,12 +59,9 @@ public class BladeManager : MonoBehaviour {
 	}
 
 	public void ResetDifficulty() {
-		Debug.Log("Difficulty Reset");
-
 		CurrentDifficulty = 1;
 		AllowedSpawnDirections = new List<Direction>() {
-			//(Direction)UnityEngine.Random.Range(0, 4)
-			Direction.Left, Direction.Right
+			(Direction)UnityEngine.Random.Range(0, 4)
 		};
 		DisabledDifficultyTypeIncreases = new List<DifficultyTypes>();
 
@@ -82,11 +82,20 @@ public class BladeManager : MonoBehaviour {
 		CurrentDifficulty++;
 
 		//determine how to increase the difficulty
-		DifficultyTypes diffincrease; 
-		do {
-			diffincrease = (DifficultyTypes)UnityEngine.Random.Range(0, NumDifficultyTypes);
-		} while( DisabledDifficultyTypeIncreases.Contains(diffincrease) );
-		Debug.Log("Difficulty Increased: " + diffincrease.ToString());
+		DifficultyTypes diffincrease;
+		
+		//if we've increased the difficulty 5 teams without adding a new direction, add a new direction
+		if( CurrentDifficulty % 5 == 0 && CurrentDifficulty / 5 >= AllowedSpawnDirections.Count) {
+			Debug.Log("Added Direction by Force");
+			diffincrease = DifficultyTypes.Direction;
+		}
+		else {
+			do {
+				diffincrease = (DifficultyTypes)UnityEngine.Random.Range(0, NumDifficultyTypes);
+			} while( DisabledDifficultyTypeIncreases.Contains(diffincrease) );
+		}
+
+		Debug.Log("Difficulty Increased: " + Enum.GetName(typeof(DifficultyTypes), diffincrease));
 
 		switch (diffincrease) {
 			case DifficultyTypes.Direction:
@@ -143,31 +152,36 @@ public class BladeManager : MonoBehaviour {
 				//determine which blade positions are spawning
 				bool leftright = d == Direction.Right || d == Direction.Left;
 				float i = leftright ? 1f : 0.5f;
-				for(; i < 9; i++) {
-					BladeInfo bi = new BladeInfo() { Position = i/10f, Size = 0f, BladeDirection = d, InitTime = initTime };
-					while((UnityEngine.Random.value <= SpawnSurface)
-							&& i < 9 
-							&& bi.Size < MaximumBladeSize) {
-						bi.Size += 0.1f;
-						i++;
-					}
 
-					//spawn new blade
-					if(bi.Size > 0f) {
-						int colorOptions = BlackBladeEnabled ? 6 : 5;
-						bi.BladeColor = (GameColors)UnityEngine.Random.Range(1, colorOptions);
+				bool previousCreated = false;
+				float size = 0f;
 
-						bi.OrderInLayer = leftright ? currentOrderInLayer : currentOrderInLayer+1;
-						
-						bi.AudioClip = clip;
+				BladeInfo bi = new BladeInfo() { Size = 0.1f, BladeDirection = d, InitTime = initTime };
+				bi.OrderInLayer = leftright ? currentOrderInLayer : currentOrderInLayer + 1;
+				bi.AudioClip = clip;
+
+				for (; i < 9; i++) {
+					if(UnityEngine.Random.value <= SpawnSurface && size < MaximumBladeSize) {
+						if(!previousCreated) {
+							int colorOptions = BlackBladeEnabled ? 6 : 5;
+							bi.BladeColor = (GameColors)UnityEngine.Random.Range(1, colorOptions);
+							size = 0f;
+						}
+
+						bi.Position = i / 10f;
 
 						Blade b = Instantiate(BladePrefab, BladeContainer).GetComponent<Blade>();
 						b.Init(bi, camSize);
 
 						blades.Add(b);
 
-						//black blades worth double points
-						bladeScore += (int)(bi.Size * 10 * (bi.BladeColor == GameColors.black ? 2 : 1));
+						bladeScore += bi.BladeColor == GameColors.black ? 2 : 1;
+
+						size += 0.1f;
+						previousCreated = true;
+					}
+					else {
+						previousCreated = false;
 					}
 				}
 			}
@@ -201,7 +215,10 @@ public class BladeManager : MonoBehaviour {
 				LastDifficultySetTime = Time.time;			
 			}
 
-			yield return new WaitForSeconds( UnityEngine.Random.Range (MinimumSpawnCooldown, MaximumSpawnCooldown ));
+			//if no blades were spawned, speed up the next round of blade spawns
+			//otherwise, pick a random number between minimum and maximum blade spawn times
+			float waitTime = bladeScore == 0 ? MinimumSpawnCooldown / 4f : UnityEngine.Random.Range(MinimumSpawnCooldown, MaximumSpawnCooldown);
+			yield return new WaitForSeconds(waitTime);
 		}
 	}
 }

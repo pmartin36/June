@@ -36,6 +36,13 @@ public class Blade : MonoBehaviour {
 	BoxCollider2D box;
 
 	public static GameObject sparkPrefab;
+	public static Sprite HorizontalBlade;
+	public static Sprite VerticalBlade;
+
+	private SpriteRenderer spriteRenderer;
+
+	//for when the player and another blade hit the same frame
+	public bool JustCollided { get; private set; }
 
 	// Use this for initialization
 	void Start () {
@@ -44,8 +51,9 @@ public class Blade : MonoBehaviour {
 		velocity = Vector3.zero;
 
 		//sparkPrefab is static
-		if(sparkPrefab == null)
+		if(sparkPrefab == null) {
 			sparkPrefab = Resources.Load<GameObject>("Prefabs/Sparks");
+		}
 
 		StartCoroutine(Launch());
 	}
@@ -87,20 +95,41 @@ public class Blade : MonoBehaviour {
 						AudioClip audioClip,
 						Vector2 cameraSize) {
 
+		if (HorizontalBlade == null) {
+			HorizontalBlade = Resources.Load<Sprite>("Sprites/Blade_Horizontal");
+		}
+		if (VerticalBlade == null) {
+			VerticalBlade = Resources.Load<Sprite>("Sprites/Blade_Vertical");
+		}
+
 		StartDirection = startDirection;
 		BladeColor = bladeColor;
 		FillColor = Blade.GetColorFromGameColor(BladeColor);
 		InitTime = initTime;
 		Size = size;
 
-		SpriteRenderer sr = GetComponent<SpriteRenderer>();
-		sr.color = FillColor;
-		sr.sortingOrder = orderInLayer;
+		float size10 = size * 10;
+
+		spriteRenderer = GetComponent<SpriteRenderer>();
+
+		//Rendering
+		Shader shader = EnumHelper.IsLeftRight(StartDirection) ? Shader.Find("Sprites/BladeHorizontal") : Shader.Find("Sprites/BladeVertical");
+
+		Material m = new Material(shader);
+		m.SetFloat("_Size", size10);
+		m.SetFloat("_ShineLocation", -0.5f);
+		spriteRenderer.material = m;
+
+		spriteRenderer.color = FillColor;
+		spriteRenderer.sortingOrder = orderInLayer;
+
 
 		box = GetComponent<BoxCollider2D>();
 
 		audioPlayer = GetComponent<AudioSource>();
 		audioPlayer.clip = audioClip;
+
+		float scale = 1.45f;
 
 		//offset from position start 
 		//(half of a camera strip) * size * 10 == (0.5 * camSize/10 * size * 10) == 0.5 * camSize * size
@@ -115,28 +144,32 @@ public class Blade : MonoBehaviour {
 
 				pokeDistance = -new Vector3(0, cameraSize.x * 0.055f, 0);
 
-				transform.localScale = new Vector2( cameraSize.x * size, cameraSize.y );
+				spriteRenderer.sprite = VerticalBlade;
+
+				transform.localScale = new Vector2( scale * size10, scale );
 				transform.position = new Vector2( position, cameraSize.y );
 				startLinePosition = transform.position + pokeDistance;
 				endPosition = transform.position - pokeDistance - new Vector3(0, cameraSize.y, 0);
 
-				box.size = new Vector2( 0.98f, 0.02f );
-				box.offset = new Vector2( 0f, -0.49f );
+				box.size = new Vector2( 1.85f, 0.24f );
+				box.offset = new Vector2( 0f, -5.28f );
 
 				MasterCollisionHandler = true;
 				break;
 			case Direction.Right:
 				position = (position + offset - 0.5f) * cameraSize.y;
 
-				pokeDistance = -new Vector3(cameraSize.x * 0.05f, 0, 0);
+				pokeDistance = -new Vector3(cameraSize.x * 0.055f, 0, 0);
 
-				transform.localScale = new Vector2(cameraSize.x, (cameraSize.y) * size);
+				spriteRenderer.sprite = HorizontalBlade;
+
+				transform.localScale = new Vector2(scale, scale * size10);
 				transform.position = new Vector2(cameraSize.x, position);
 				startLinePosition = transform.position + pokeDistance;
-				endPosition = transform.position - pokeDistance - new Vector3(cameraSize.x, 0, 0);
+				endPosition = transform.position - pokeDistance * 0.85f - new Vector3(cameraSize.x, 0, 0);
 
-				box.size = new Vector2( 0.02f, 0.98f);
-				box.offset = new Vector2( -0.49f, 0f );
+				box.size = new Vector2( 0.26f, 0.98f);
+				box.offset = new Vector2( -9.46f, 0f );
 
 				MasterCollisionHandler = true;
 				break;
@@ -145,28 +178,32 @@ public class Blade : MonoBehaviour {
 
 				pokeDistance = new Vector3(0, cameraSize.x * 0.055f, 0);
 
-				transform.localScale = new Vector2(cameraSize.x * size, cameraSize.y);
+				spriteRenderer.sprite = VerticalBlade;
+
+				transform.localScale = new Vector2(scale * size10, -scale);
 				transform.position = new Vector2(position, -cameraSize.y);
 				startLinePosition = transform.position + pokeDistance;
 				endPosition = transform.position - pokeDistance + new Vector3(0, cameraSize.y, 0);
 
-				box.size = new Vector2(0.98f, 0.02f);
-				box.offset = new Vector2(0f, 0.49f);
+				box.size = new Vector2(1.85f, 0.24f);
+				box.offset = new Vector2(0f, -5.28f);
 
 				MasterCollisionHandler = false;
 				break;
 			case Direction.Left:
 				position = (position + offset - 0.5f) * cameraSize.y;
 
-				pokeDistance = new Vector3(cameraSize.x * 0.05f, 0, 0);
+				pokeDistance = new Vector3(cameraSize.x * 0.055f, 0, 0);
 
-				transform.localScale = new Vector2(cameraSize.x, cameraSize.y * size);
+				spriteRenderer.sprite = HorizontalBlade;
+
+				transform.localScale = new Vector2(-scale, scale * size10);
 				transform.position = new Vector2(-cameraSize.x, position);
 				startLinePosition = transform.position + pokeDistance;
-				endPosition = transform.position - pokeDistance + new Vector3(cameraSize.x, 0, 0);
+				endPosition = transform.position - pokeDistance * 0.85f + new Vector3(cameraSize.x, 0, 0);
 
-				box.size = new Vector2(0.02f, 0.98f);
-				box.offset = new Vector2(0.49f, 0f);
+				box.size = new Vector2(0.26f, 0.98f);
+				box.offset = new Vector2(-9.46f, 0f);
 
 				MasterCollisionHandler = false;
 				break;
@@ -213,25 +250,28 @@ public class Blade : MonoBehaviour {
 						Vector2 midpoint = Vector2.zero;
 						if (StartDirection == Direction.Right) {
 							midpoint = (this.transform.position + other.transform.position) / 2f;
-							other.transform.position = new Vector2(midpoint.x - transform.localScale.x / 2f, other.transform.position.y);
-							this.transform.position = new Vector2(midpoint.x + transform.localScale.x / 2f, this.transform.position.y);
+
+							other.transform.position = new Vector2(midpoint.x - spriteRenderer.bounds.extents.x, other.transform.position.y);
+							this.transform.position = new Vector2(midpoint.x + spriteRenderer.bounds.extents.x, this.transform.position.y);
 
 							this.endPosition = this.transform.position;
 							b.endPosition = other.transform.position;
 
 							HasStopped = true;
 							b.HasStopped = true;
+							JustCollided = true;
 						}
 						else if (StartDirection == Direction.Up) {
 							midpoint = (this.transform.position + other.transform.position) / 2f;
-							other.transform.position = new Vector2(other.transform.position.x, midpoint.y - transform.localScale.y / 2f);
-							this.transform.position = new Vector2(this.transform.position.x, midpoint.y + transform.localScale.y / 2f);
+							other.transform.position = new Vector2(other.transform.position.x, midpoint.y - spriteRenderer.bounds.extents.y);
+							this.transform.position = new Vector2(this.transform.position.x, midpoint.y + spriteRenderer.bounds.extents.y);
  
 							this.endPosition = this.transform.position;
 							b.endPosition = other.transform.position;
 								
 							HasStopped = true;
 							b.HasStopped = true;
+							JustCollided = true;
 						}
 
 						//stop the blade from moving any further
@@ -263,6 +303,7 @@ public class Blade : MonoBehaviour {
 		//move up slowly to starting line
 		float startTime = Time.time;
 		Vector3 startPosition = transform.position;
+
 		float tripTime = 1f;
 		while(Time.time - startTime < tripTime + Time.deltaTime) {
 			float jtime = (Time.time - startTime) / tripTime;
@@ -282,13 +323,16 @@ public class Blade : MonoBehaviour {
 
 		//move blade
 		while(Time.time - launchTime < tripTime + Time.deltaTime) {
+			JustCollided = false;
 			if(HasStopped) {
 				yield break;
 			}
+
 			Vector3 currentPos = transform.position;
 
 			float jtime = (Time.time - launchTime) / tripTime;
 			transform.position = Vector3.Lerp(startLinePosition, endPosition, jtime);
+			spriteRenderer.material.SetFloat("_ShineLocation", Mathf.Lerp(-0.5f, 1.1f, jtime));
 
 			velocity = transform.position - currentPos;
 
@@ -307,6 +351,29 @@ public class Blade : MonoBehaviour {
 			a.volume = GameManager.Instance.MenuOpen ? 0.25f : 0.75f;
 			a.clip = Resources.Load<AudioClip>("Sounds/wall");
 			a.Play();
+		}
+	}
+
+	public void PlayerDodged() {
+		//play collision sound			
+		AudioSource a = gameObject.AddComponent<AudioSource>();
+		a.mute = !GameManager.Instance.settings.SFX;
+		a.volume = GameManager.Instance.MenuOpen ? 0.25f : 0.75f;
+		a.clip = Resources.Load<AudioClip>("Sounds/ding");
+		a.Play();
+
+		box.enabled = false;
+		StartCoroutine(FadeToTransparent());
+	}
+
+	IEnumerator FadeToTransparent() {
+		float startTime = Time.time;
+		float journeyTime = 0.5f;
+		Color startColor = spriteRenderer.color;
+
+		while(Time.time - startTime < journeyTime + Time.deltaTime) {
+			spriteRenderer.color = Color.Lerp( startColor, Color.clear, (Time.time - startTime) / journeyTime);
+			yield return new WaitForEndOfFrame();
 		}
 	}
 
@@ -339,7 +406,7 @@ public class Blade : MonoBehaviour {
 			case GameColors.blue:
 				return new Color(0, 0, 0.5f, 1f);
 			case GameColors.black:
-				return new Color(0, 0, 0, 1f);
+				return new Color(0.2f, 0.2f, 0.2f, 1f);
 		}
 	}
 

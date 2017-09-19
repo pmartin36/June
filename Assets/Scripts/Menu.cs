@@ -16,7 +16,7 @@ public class Menu : MonoBehaviour {
 	}
 
 	// Use this for initialization
-	void Awake () {
+	public virtual void Awake () {
 		submenus = GetComponentsInChildren<Submenu>().OrderBy( g => g.transform.position.x ).ToList();		
 	}
 
